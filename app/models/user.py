@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean
-from app.database import Base
+from sqlalchemy.orm import relationship
+from app.db.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -9,3 +10,7 @@ class User(Base):
     name = Column(String(255), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+
+    # Relationships
+    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete")
+    documents = relationship("Document", back_populates="user", cascade="all, delete")

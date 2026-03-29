@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+pydantic
+passlib[bcrypt]
+python-jose[cryptography] # or pyjwt
+PyJWT
+python-dotenv
+ollama
+PyPDF2
+numpy
+python-multipart
