@@ -14,12 +14,18 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 UPLOAD_DIRECTORY = "uploads"
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-@router.post("/upload", response_model=DocumentSchema)
+@router.post("/upload", response_model=DocumentSchema, summary="Upload and process a PDF")
 async def upload_document(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Upload a PDF document. It will be automatically:
+    1. Saved to the server storage.
+    2. Split into chunks.
+    3. Converted into embeddings and stored for Vector Search (RAG).
+    """
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
         
@@ -48,7 +54,10 @@ async def upload_document(
         # In case of partial failure, you might want to rollback or cleanup
         raise HTTPException(status_code=500, detail="Error processing and embedding document.")
 
-@router.get("", response_model=list[DocumentSchema])
+@router.get("", response_model=list[DocumentSchema], summary="List all user documents")
 def get_documents(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Get a list of all documents uploaded by the current user.
+    """
     documents = db.query(Document).filter(Document.user_id == current_user.id).all()
     return documents

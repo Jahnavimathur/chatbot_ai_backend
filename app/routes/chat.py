@@ -10,16 +10,24 @@ from app.services.rag_service import search_similar_chunks
 
 router = APIRouter(prefix="", tags=["chat"])
 
-@router.post("/create-session", response_model=ChatSessionSchema)
+@router.post("/create-session", response_model=ChatSessionSchema, summary="Create a new chat session")
 def create_session(session: ChatSessionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Create a new chat session for the current user. 
+    Sessions group messages together and provide context.
+    """
     db_session = ChatSession(user_id=current_user.id, title=session.title)
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
     return db_session
 
-@router.get("/chat/{session_id}", response_model=list[MessageSchema])
+@router.get("/chat/{session_id}", response_model=list[MessageSchema], summary="Get messages for a session")
 def get_session_chat(session_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Retrieve all messages for a specific chat session.
+    Only accessible by the owner of the session.
+    """
     db_session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -27,8 +35,12 @@ def get_session_chat(session_id: int, db: Session = Depends(get_db), current_use
     messages = db.query(Message).filter(Message.session_id == session_id).order_by(Message.created_at.asc()).all()
     return messages
 
-@router.post("/chat", response_model=MessageSchema)
+@router.post("/chat", response_model=MessageSchema, summary="Send message and get AI response")
 def send_message(request: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Send a message to the AI within a session.
+    Includes automatic RAG context search and conversation history.
+    """
     db_session = db.query(ChatSession).filter(ChatSession.id == request.session_id, ChatSession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")

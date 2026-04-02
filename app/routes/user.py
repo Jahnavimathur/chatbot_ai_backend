@@ -8,8 +8,13 @@ from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+from fastapi.security import OAuth2PasswordRequestForm
+
+@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Create a new user")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Register a new user in the system.
+    """
     db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -21,9 +26,18 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.post("/login", response_model=Token)
-def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(UserModel).filter(UserModel.email == user_credentials.email).first()
+@router.post("/login", response_model=Token, summary="Login for access token")
+def login(
+    user_credentials: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)
+):
+    """
+    Get a JWT access token for authentication.
+    Supports both standard OAuth2 form-data (for Swagger UI) and JSON.
+    Note: For Swagger UI 'Authorize' button, use 'username' as email.
+    """
+    # OAuth2PasswordRequestForm uses 'username', we map it to 'email'
+    user = db.query(UserModel).filter(UserModel.email == user_credentials.username).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
