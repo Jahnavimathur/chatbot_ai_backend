@@ -10,14 +10,15 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # In production, these should be securely stored in environment variables.
 SECRET_KEY = os.getenv("SECRET_KEY", "b3a4c4e8156637e10887e58a69dca12b56e6962acfdca91e5d7ad4e0e47da31b")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Using pbkdf2_sha256 as it works across all environments without binary compatibility issues.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
